@@ -19,14 +19,15 @@ public class PromptConfig {
     @Value("${prompt.tree}")
     public String treePromptPath;
 
-    @Value("${prompt.getQuestion}")
-    public String getQuestion;
-
     @Value("${coze.workflow_id_title}")
     public String workflowIdTitle;
 
     @Value("${coze.workflow_id_tree}")
     public String workflowIdTree;
+
+
+    @Value("${coze.workflow_id_answer}")
+    public String workflowIdAnswer;
 
     @Value("${coze.token}")
     public String token;

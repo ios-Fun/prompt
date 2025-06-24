@@ -30,16 +30,8 @@ public class ReadPromptService {
     @Autowired
     PromptConfig promptConfig;
 
-//    String title_template;
-//
-//    String tree_template;
     private final static String DEFAULT_ENCODING = "GBK";
-    @PostConstruct
-    public void init() {
-        // 读取两个提示词文件的内容
-//        title_template = readFile(promptConfig.titlePromptPath);
-//        tree_template = readFile(promptConfig.treePromptPath);
-    }
+
 
     private String readFile(String fileName) {
         StringBuilder content = new StringBuilder();
@@ -74,10 +66,8 @@ public class ReadPromptService {
 //        log.info(title_prompt);
         Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("workflow_id", promptConfig.workflowIdTitle);
-
         Map<String, Object> paramsMap = new HashMap<>();
         paramsMap.put("input", content);
-
         objectMap.put("parameters", paramsMap);
         objectMap.put("userId", promptConfig.userId);
         LLMResult result = cozeClient.generate(objectMap);
@@ -175,20 +165,26 @@ public class ReadPromptService {
 //        String tree_prompt = String.format(tree_template, content);
 //        log.info(tree_prompt);
         Map<String, Object> objectMap = new HashMap<>();
-        objectMap.put("model", promptConfig.model);
-        // objectMap.put("prompt", tree_prompt);
-        objectMap.put("stream", false);
+        objectMap.put("workflow_id", promptConfig.workflowIdTree);
+        Map<String, Object> paramsMap = new HashMap<>();
+        paramsMap.put("input", content);
+        objectMap.put("parameters", paramsMap);
+        objectMap.put("userId", promptConfig.userId);
         LLMResult result = cozeClient.generate(objectMap);
         if (result.getData() != null) {
             log.info("reponse: {}", result.getData());
             String jsonStr = result.getData().replaceAll("```json", "").replaceAll("```","").trim();
-            if (jsonStr.startsWith("[") && jsonStr.endsWith("]")) {
-                String resultStr = fixJson(jsonStr);
+            JSONObject jsonObject = JSONObject.parseObject(jsonStr);
+            // 再取一下outout
+            String treeStr = jsonObject.getString("output");
 
-                jsonStr = "{" + resultStr + "}";
+            if (treeStr.startsWith("[") && treeStr.endsWith("]")) {
+                String resultStr = fixJson(treeStr);
+
+                treeStr = "{" + resultStr + "}";
             }
-            log.info(jsonStr);
-            return jsonStr;
+            log.info(treeStr);
+            return treeStr;
         }else {
             return null;
         }
@@ -234,16 +230,22 @@ public class ReadPromptService {
     }
 
     private String getAnswer(String question) {
-        String questionStr = String.format(promptConfig.getQuestion, question);
-        log.info(questionStr);
+        // String questionStr = String.format(promptConfig.getQuestion, question);
+        log.info(question);
         Map<String, Object> objectMap = new HashMap<>();
-        objectMap.put("model", promptConfig.model);
-        objectMap.put("prompt", questionStr);
-        objectMap.put("stream", false);
+        objectMap.put("workflow_id", promptConfig.workflowIdAnswer);
+        Map<String, Object> paramsMap = new HashMap<>();
+        paramsMap.put("input", question);
+        objectMap.put("parameters", paramsMap);
+        objectMap.put("userId", promptConfig.userId);
         LLMResult result = cozeClient.generate(objectMap);
         if (result.getData() != null) {
             log.info("reponse: {}", result.getData());
-            return result.getData().replaceAll("```json", "").replaceAll("```","").trim();
+            String answerStr = result.getData().replaceAll("```json", "").replaceAll("```","").trim();
+            JSONObject jsonObject = JSONObject.parseObject(answerStr);
+            // 再取一下outout
+            String outputStr = jsonObject.getString("output");
+            return outputStr;
         }
         return null;
     }
